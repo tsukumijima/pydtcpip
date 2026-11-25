@@ -1,6 +1,7 @@
 """Exercise DTCPClient streaming and GET Move against a fake recorder on 127.0.0.1."""
 
 import os
+import time
 from pathlib import Path
 
 import pytest
@@ -313,6 +314,33 @@ async def test_stream_dispatches_events_in_order(
         if event.type == 'transfer_received':
             assert event.content_bytes == len(_CONTENT)
     assert progress == [4000, 8000, 12000, len(_CONTENT)]
+
+
+@pytest.mark.anyio
+async def test_move_waits_before_finalizing_when_requested(
+    authority: FakeAuthority, sink_device: FakeDevice, source_device: FakeDevice, tmp_path: Path
+) -> None:
+    """Delay only the finalize request so sources that need time after the transfer ends can accept it."""
+
+    path = tmp_path / 'recording.ts'
+    timestamps: dict[str, float] = {}
+
+    def on_event(event: TransferEvent) -> None:
+        timestamps.setdefault(event.type, time.monotonic())
+
+    async with (
+        FakeSourceAKE(authority, source_device) as source,
+        FakeMediaServer(source, _CONTENT) as server,
+        DTCPClient(sink_device.credentials(), timeout=5) as client,
+    ):
+        size = await client.move(server.url, FileSink(path), on_event=on_event, finalize_delay=0.3)
+
+    assert size == len(_CONTENT)
+    assert path.read_bytes() == _CONTENT
+    assert source.log == ['mv_initiate', 'challenge', 'rtt', 'mv_exchange_key', 'finalize', 'complete']
+    # The recording is persisted before the wait, and finalization is requested only after it
+    assert timestamps['move_finalize_requested'] - timestamps['sink_persisted'] >= 0.3
+    assert source.errors == []
 
 
 @pytest.mark.anyio

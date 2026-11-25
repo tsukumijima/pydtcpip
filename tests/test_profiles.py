@@ -251,6 +251,14 @@ def test_panasonic_reports_client_authorization_refusal() -> None:
     assert PANASONIC.resolve_http_status()(500, 'http://192.0.2.1/cds', None) is None
 
 
+def test_move_finalize_delay_applies_only_to_panasonic_recorders() -> None:
+    # Panasonic recorders refused an immediate finalize request; every other family keeps the standard timing
+    assert GENERIC.resolve_move_finalize_delay() == 0.0
+    assert PANASONIC.resolve_move_finalize_delay() == 5.0
+    delays = {profile.name: profile.resolve_move_finalize_delay() for profile in PROFILES}
+    assert {name for name, delay in delays.items() if delay > 0} == {'panasonic'}
+
+
 def test_recording_keeps_all_long_descriptions_in_document_order() -> None:
     """Keep repeated ARIB and UPnP descriptions, including normalized broadcast marks."""
 

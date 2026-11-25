@@ -142,4 +142,7 @@ PANASONIC = Profile(
         '{urn:schemas-panasonic-com:pxn}EncContentURI',
     ),
     read_resource_details=_read_resource_details,
+    # DMR-BRW1060 closed the control connection on a finalize request sent within milliseconds of receipt,
+    ## then rejected the retry; it accepted the request after a 5-second wait
+    move_finalize_delay=5.0,
 )
