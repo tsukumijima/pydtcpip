@@ -77,17 +77,17 @@ Models are grouped by device family, with older models first within each group. 
 | Model / report | Discovery | Recording listings | Streaming (non-Move) | Move | Push dubbing reception |
 | --- | --- | --- | --- | --- | --- |
 | [Sony nasne CECH-ZNR1J](https://github.com/tsukumijima/pydtcpip/issues/21) | Reported | Reported | Reported | [Reported](https://github.com/tsukumijima/pydtcpip/pull/25) | Not supported |
-| [Sony nasne CECH-ZNR2J](https://github.com/tsukumijima/pydtcpip/issues/34) | Unverified | Reported | Reported | Unverified | Unverified |
+| [Sony nasne CECH-ZNR2J](https://github.com/tsukumijima/pydtcpip/issues/34) | Unverified | Reported | Reported | [Reported](https://github.com/tsukumijima/pydtcpip/issues/34#issuecomment-7191012829) | Unverified |
 | [Sony nasne (model unspecified)](https://github.com/tsukumijima/pydtcpip/issues/16) | Reported (API) | Reported (API) | Reported (DR and 3x, API) | [Reported](https://github.com/tsukumijima/pydtcpip/issues/16#issuecomment-6994279457) | Unverified |
 | [Buffalo nasne NS-N100](https://github.com/tsukumijima/pydtcpip/issues/4) | Reported ([see note](#model-specific-notes)) | Reported | Unverified | Unverified | Not supported |
 | [Toshiba REGZA 42ZG1](https://github.com/tsukumijima/pydtcpip/issues/22) | Not detected | Unverified | Unverified | Unverified | Reported |
-| [Toshiba REGZA 50Z740XS](https://github.com/tsukumijima/pydtcpip/issues/34) | Unverified | Reported | Reported (including time-shift recordings) | Unverified | Unverified |
+| [Toshiba REGZA 50Z740XS](https://github.com/tsukumijima/pydtcpip/issues/34) | Unverified | Reported | Reported (including time-shift recordings) | [Reported directly from time-shift recordings](https://github.com/tsukumijima/pydtcpip/issues/34#issuecomment-7191012829) | Unverified |
 | Toshiba REGZA 43Z570L | Verified | Verified | Verified | Refused to start | Verified |
-| [Toshiba REGZA 43M550M](https://github.com/tsukumijima/pydtcpip/issues/8) | Reported | Reported | Unverified | Unverified | Unverified |
+| [Toshiba REGZA 43M550M](https://github.com/tsukumijima/pydtcpip/issues/8) | Reported | Reported | [Authentication and start of reception reported](https://github.com/tsukumijima/pydtcpip/issues/8#issuecomment-7187026479) | Unverified | Unverified |
 | [Toshiba RD-BR600](https://github.com/tsukumijima/pydtcpip/issues/31) | Unverified (direct URL used) | Reported | Reported (full recording, API) | Unverified | Unverified |
 | Toshiba DBR-Z620 | Verified | Verified | Verified | Verified | Verified |
 | [Toshiba REGZA DBR-4KZ200](https://github.com/tsukumijima/pydtcpip/issues/19) | Reported | Reported (including time-shift recordings) | Unverified | Unverified | Unverified |
-| [Toshiba REGZA DBR-M4010](https://github.com/tsukumijima/pydtcpip/issues/34) | Unverified | Reported | Reported (including time-shift recordings) | Unverified | Unverified |
+| [Toshiba REGZA DBR-M4010](https://github.com/tsukumijima/pydtcpip/issues/34) | Unverified | Reported | Reported (including time-shift recordings) | [Reported](https://github.com/tsukumijima/pydtcpip/issues/34#issuecomment-7191012829) (save time-shift recordings to USB HDD first) | Unverified |
 | [Panasonic TZ-WR500P](https://github.com/tsukumijima/pydtcpip/issues/33) | Reported | Reported | Full recording saved | Media request refused (HTTP 503) | Unverified |
 | [Panasonic VIERA TH-65LX950](https://github.com/tsukumijima/pydtcpip/issues/14#issuecomment-7005316755) | Reported | Reported | Reported | Refused to start | Reported |
 | [Panasonic VIERA TV-43W90B](https://github.com/tsukumijima/pydtcpip/issues/32) | Reported | Reported | Full recording saved in standby | Refused to start | Unverified |
@@ -128,7 +128,7 @@ If discovery fails on Windows, select your PC's LAN address with `--interface`.
   - For the 43Z570L, run `receive` on the PC and start dubbing from the TV.  
     In testing, the TV refused to start a Move initiated from the PC.
   - Other REGZA TV models may also support only dubbing initiated from the TV.
-  - On the 50Z740XS, the [manual (p. 147)](https://cs.regza.com/document/manual/100016_07r0.pdf#page=147) directs users to save a time-shift recording to a normal recording drive before dubbing.
+  - For dubbing from the 50Z740XS's own menu, the [manual (p. 147)](https://cs.regza.com/document/manual/100016_07r0.pdf#page=147) directs users to save a time-shift recording to a normal recording drive first.
 - **Panasonic VIERA TV-43W90B**
   - If media requests return HTTP 503 while the TV is on, try streaming in standby.  
     The TV's recording list remained available in both states, and 4K recordings were absent from the network listing.
