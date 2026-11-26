@@ -213,6 +213,7 @@ class DTCPClient:
         on_resume_state: ResumeStateCallback | None = None,
         on_event: EventCallback | None = None,
         reconnect_without_authentication: bool = False,
+        finalize_delay: float = 0.0,
     ) -> int:
         """
         Receive a complete recording by GET Move and finalize after the sink persists it.
@@ -227,6 +228,8 @@ class DTCPClient:
             on_event (EventCallback | None): Event callback
             reconnect_without_authentication (bool): Use the saved Move key on a fresh TCP connection without
                 another authentication exchange. Enable this for sources that close the connection after authentication.
+            finalize_delay (float): Seconds to wait after persisting the recording before requesting finalization,
+                for sources that refuse a finalize request sent immediately after the transfer ends
 
         Returns:
             int: Number of recording bytes written to the sink
@@ -310,7 +313,13 @@ class DTCPClient:
                     on_event=on_event,
                 )
 
-            await finish_move(transaction, sink, on_resume_state=on_resume_state, on_event=on_event)
+            await finish_move(
+                transaction,
+                sink,
+                on_resume_state=on_resume_state,
+                on_event=on_event,
+                finalize_delay=finalize_delay,
+            )
             return transaction.written_bytes
 
         except BaseException:

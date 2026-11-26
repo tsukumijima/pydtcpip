@@ -251,6 +251,32 @@ def test_panasonic_reports_client_authorization_refusal() -> None:
     assert PANASONIC.resolve_http_status()(500, 'http://192.0.2.1/cds', None) is None
 
 
+@pytest.mark.parametrize(
+    ('manufacturer', 'model_name', 'model_number', 'delay'),
+    [
+        ('Panasonic', 'BD/DVD Recorder', 'DMR-BRW1060', 5.0),
+        ('Panasonic', 'DMR-BRW1060', '', 5.0),
+        ('Panasonic', 'BD/DVD Recorder', 'DMR-BCW1060', 0.0),
+        ('Panasonic', 'BD/DVD Recorder', 'DMR-BRX/BCX2060', 0.0),
+        ('Panasonic', 'TV-43W90B', '', 0.0),
+        ('Panasonic', 'TZ-WR500P', '', 0.0),
+        ('Example', 'BD/DVD Recorder', 'DMR-BRW1060', 0.0),
+    ],
+)
+def test_move_finalize_delay_targets_dmr_brw1060(
+    manufacturer: str, model_name: str, model_number: str, delay: float
+) -> None:
+    """Keep the wait limited to devices that identify themselves as Panasonic DMR-BRW1060."""
+
+    description = parse_device_description(
+        'http://192.0.2.1/description.xml',
+        '<root xmlns="urn:schemas-upnp-org:device-1-0"><device>'
+        f'<manufacturer>{manufacturer}</manufacturer><modelName>{model_name}</modelName>'
+        f'<modelNumber>{model_number}</modelNumber></device></root>',
+    )
+    assert select_profile(description).resolve_move_finalize_delay(description) == delay
+
+
 def test_recording_keeps_all_long_descriptions_in_document_order() -> None:
     """Keep repeated ARIB and UPnP descriptions, including normalized broadcast marks."""
 

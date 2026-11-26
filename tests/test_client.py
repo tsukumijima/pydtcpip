@@ -1,6 +1,8 @@
 """Exercise DTCPClient streaming and GET Move against a fake recorder on 127.0.0.1."""
 
+import asyncio
 import os
+import time
 from pathlib import Path
 
 import pytest
@@ -11,6 +13,7 @@ from pydtcpip.dtcp.ake import open_ake_connection as _open_ake_connection
 from pydtcpip.errors import DLNAError, DTCPError, MoveCommitmentRejectedError
 from pydtcpip.events import MediaInfoReceived, TransferEvent
 from pydtcpip.models import MoveResumeState, Resource, TimeRange
+from pydtcpip.operations import resume_state_path, save_resume_state
 from pydtcpip.sinks import FileSink
 from tests.fakes import (
     FakeAuthority,
@@ -313,6 +316,81 @@ async def test_stream_dispatches_events_in_order(
         if event.type == 'transfer_received':
             assert event.content_bytes == len(_CONTENT)
     assert progress == [4000, 8000, 12000, len(_CONTENT)]
+
+
+@pytest.mark.anyio
+async def test_move_waits_before_finalizing_when_requested(
+    authority: FakeAuthority, sink_device: FakeDevice, source_device: FakeDevice, tmp_path: Path
+) -> None:
+    """Delay only the finalize request so sources that need time after the transfer ends can accept it."""
+
+    path = tmp_path / 'recording.ts'
+    timestamps: dict[str, float] = {}
+
+    def on_event(event: TransferEvent) -> None:
+        timestamps.setdefault(event.type, time.monotonic())
+
+    async with (
+        FakeSourceAKE(authority, source_device) as source,
+        FakeMediaServer(source, _CONTENT) as server,
+        DTCPClient(sink_device.credentials(), timeout=5) as client,
+    ):
+        size = await client.move(server.url, FileSink(path), on_event=on_event, finalize_delay=0.3)
+
+    assert size == len(_CONTENT)
+    assert path.read_bytes() == _CONTENT
+    assert source.log == ['mv_initiate', 'challenge', 'rtt', 'mv_exchange_key', 'finalize', 'complete']
+    # The recording is persisted before the wait, and finalization is requested only after it
+    assert timestamps['move_finalize_requested'] - timestamps['sink_persisted'] >= 0.3
+    assert source.errors == []
+
+
+@pytest.mark.anyio
+async def test_move_cancelled_during_finalize_delay_leaves_no_resume_file(
+    authority: FakeAuthority, sink_device: FakeDevice, source_device: FakeDevice, tmp_path: Path
+) -> None:
+    """Cancel after persisting the recording and leave the output path available for another Move."""
+
+    path = tmp_path / 'recording.ts'
+    sink = FileSink(path)
+    resume_path = resume_state_path(path)
+    persisted = asyncio.Event()
+
+    def on_event(event: TransferEvent) -> None:
+        """
+        Notify the test once the recording has been persisted.
+
+        Args:
+            event (TransferEvent): Event emitted during the Move
+        """
+
+        if event.type == 'sink_persisted':
+            persisted.set()
+
+    async with (
+        FakeSourceAKE(authority, source_device) as source,
+        FakeMediaServer(source, _CONTENT) as server,
+        DTCPClient(sink_device.credentials(), timeout=5) as client,
+    ):
+        move = asyncio.create_task(
+            client.move(
+                server.url,
+                sink,
+                on_resume_state=lambda state: save_resume_state(resume_path, state),
+                on_event=on_event,
+                finalize_delay=5.0,
+            )
+        )
+        # Cancel during the wait, after the complete recording has reached disk
+        await asyncio.wait_for(persisted.wait(), timeout=5)
+        move.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await move
+
+    assert source.log == ['mv_initiate', 'challenge', 'rtt', 'mv_exchange_key', 'cancel']
+    assert source.errors == []
+    assert sink.pending_path.exists() is False
+    assert resume_path.exists() is False
 
 
 @pytest.mark.anyio
