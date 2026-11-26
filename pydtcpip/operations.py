@@ -302,7 +302,11 @@ async def run_move(
                 if media_server is not None
                 else False
             ),
-            finalize_delay=media_server.profile.resolve_move_finalize_delay() if media_server is not None else 0.0,
+            finalize_delay=(
+                media_server.profile.resolve_move_finalize_delay(media_server.description)
+                if media_server is not None
+                else 0.0
+            ),
         )
     except DLNAError as ex:
         if media_server is not None:

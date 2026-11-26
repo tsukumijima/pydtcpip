@@ -251,12 +251,30 @@ def test_panasonic_reports_client_authorization_refusal() -> None:
     assert PANASONIC.resolve_http_status()(500, 'http://192.0.2.1/cds', None) is None
 
 
-def test_move_finalize_delay_applies_only_to_panasonic_recorders() -> None:
-    # Panasonic recorders refused an immediate finalize request; every other family keeps the standard timing
-    assert GENERIC.resolve_move_finalize_delay() == 0.0
-    assert PANASONIC.resolve_move_finalize_delay() == 5.0
-    delays = {profile.name: profile.resolve_move_finalize_delay() for profile in PROFILES}
-    assert {name for name, delay in delays.items() if delay > 0} == {'panasonic'}
+@pytest.mark.parametrize(
+    ('manufacturer', 'model_name', 'model_number', 'delay'),
+    [
+        ('Panasonic', 'BD/DVD Recorder', 'DMR-BRW1060', 5.0),
+        ('Panasonic', 'DMR-BRW1060', '', 5.0),
+        ('Panasonic', 'BD/DVD Recorder', 'DMR-BCW1060', 0.0),
+        ('Panasonic', 'BD/DVD Recorder', 'DMR-BRX/BCX2060', 0.0),
+        ('Panasonic', 'TV-43W90B', '', 0.0),
+        ('Panasonic', 'TZ-WR500P', '', 0.0),
+        ('Example', 'BD/DVD Recorder', 'DMR-BRW1060', 0.0),
+    ],
+)
+def test_move_finalize_delay_targets_dmr_brw1060(
+    manufacturer: str, model_name: str, model_number: str, delay: float
+) -> None:
+    """Keep the wait limited to devices that identify themselves as Panasonic DMR-BRW1060."""
+
+    description = parse_device_description(
+        'http://192.0.2.1/description.xml',
+        '<root xmlns="urn:schemas-upnp-org:device-1-0"><device>'
+        f'<manufacturer>{manufacturer}</manufacturer><modelName>{model_name}</modelName>'
+        f'<modelNumber>{model_number}</modelNumber></device></root>',
+    )
+    assert select_profile(description).resolve_move_finalize_delay(description) == delay
 
 
 def test_recording_keeps_all_long_descriptions_in_document_order() -> None:

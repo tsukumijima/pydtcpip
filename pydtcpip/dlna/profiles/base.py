@@ -82,11 +82,14 @@ class Profile:
     # Whether the source accepts Move control requests on a new connection without a second authentication exchange
     move_reconnect_without_authentication: Callable[[DeviceDescription], bool] | None = None
     # Seconds to wait after receiving a complete Move before requesting finalization
-    move_finalize_delay: float | None = None
+    move_finalize_delay: Callable[[DeviceDescription], float] | None = None
 
-    def resolve_move_finalize_delay(self) -> float:
+    def resolve_move_finalize_delay(self, description: DeviceDescription) -> float:
         """
-        Resolve the wait before Move finalization through the profile tree.
+        Resolve the wait before Move finalization for the source.
+
+        Args:
+            description (DeviceDescription): Source device description
 
         Returns:
             float: Seconds to wait after receipt before sending the finalize request (defaults to 0)
@@ -95,7 +98,7 @@ class Profile:
         profile: Profile | None = self
         while profile is not None:
             if profile.move_finalize_delay is not None:
-                return profile.move_finalize_delay
+                return profile.move_finalize_delay(description)
             profile = profile.parent
         return 0.0
 

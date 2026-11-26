@@ -117,6 +117,22 @@ def _interpret_http_status(status: int, url: str, upnp_error_code: int | None) -
     return None
 
 
+def _move_finalize_delay(description: DeviceDescription) -> float:
+    """
+    Allow time for the DMR-BRW1060 to accept finalization after receiving a recording.
+
+    Args:
+        description (DeviceDescription): Source device description
+
+    Returns:
+        float: Wait before requesting Move finalization, in seconds
+    """
+
+    if (description.model_number or description.model_name).upper() == 'DMR-BRW1060':
+        return 5.0
+    return 0.0
+
+
 PANASONIC = Profile(
     name='panasonic',
     parent=GENERIC,
@@ -142,7 +158,5 @@ PANASONIC = Profile(
         '{urn:schemas-panasonic-com:pxn}EncContentURI',
     ),
     read_resource_details=_read_resource_details,
-    # DMR-BRW1060 closed the control connection on a finalize request sent within milliseconds of receipt,
-    ## then rejected the retry; it accepted the request after a 5-second wait
-    move_finalize_delay=5.0,
+    move_finalize_delay=_move_finalize_delay,
 )
