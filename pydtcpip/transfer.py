@@ -1,5 +1,6 @@
 """Receive, finalize, and cancel transfers shared by GET Move and incoming transfers."""
 
+import asyncio
 import logging
 from collections.abc import AsyncIterator, Awaitable, Callable
 
@@ -113,6 +114,7 @@ async def finish_move(
     on_resume_state: ResumeStateCallback | None,
     on_event: EventCallback | None,
     before_finalize: Callable[[], Awaitable[None]] | None = None,
+    finalize_delay: float = 0.0,
 ) -> None:
     """
     Finish a received Move by persisting the sink, finalizing, committing the sink, and notifying completion.
@@ -124,6 +126,7 @@ async def finish_move(
         on_resume_state (ResumeStateCallback | None): Resume state callback
         on_event (EventCallback | None): Event callback
         before_finalize (Callable[[], Awaitable[None]] | None): Action after saving resume state and before finalization
+        finalize_delay (float): Seconds to wait after persisting a newly received recording
     """
 
     async def save_resume_state(resume_state: MoveResumeState | None) -> None:
@@ -141,6 +144,10 @@ async def finish_move(
         await dispatch_event(
             on_event, SinkPersisted(transfer_id=transaction.transfer_id, written_bytes=transaction.written_bytes)
         )
+        # Keep the wait cancellable and save resume state only when ready to start finalization
+        if finalize_delay > 0:
+            _LOGGER.info(f'Waiting {finalize_delay:g} seconds for the source before requesting Move finalization.')
+            await asyncio.sleep(finalize_delay)
     if transaction.state in ('receiving', 'finalizing'):
         await save_resume_state(transaction.resume_state())
         if before_finalize is not None:

@@ -313,16 +313,12 @@ class DTCPClient:
                     on_event=on_event,
                 )
 
-            async def wait_before_finalize() -> None:
-                _LOGGER.info(f'Waiting {finalize_delay:g} seconds for the source before requesting Move finalization.')
-                await asyncio.sleep(finalize_delay)
-
             await finish_move(
                 transaction,
                 sink,
                 on_resume_state=on_resume_state,
                 on_event=on_event,
-                before_finalize=wait_before_finalize if finalize_delay > 0 else None,
+                finalize_delay=finalize_delay,
             )
             return transaction.written_bytes
 
